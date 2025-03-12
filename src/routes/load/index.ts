@@ -1,20 +1,35 @@
 import { FastifyPluginAsync } from "fastify";
+import { getDB } from "../../db/database";
 import { downloadAndProcessZip } from "../../utils";
-import Redis from 'ioredis';
 
-const redis = new Redis({
-  host: 'localhost',    // Redis server host
-  port: 6379,          // Redis server port
-});
+const BATCH_SIZE = 10000;
+const ZIP_URL =
+  process.env.ZIP_URL ||
+  "https://dgii.gov.do/app/WebApps/Consultas/RNC/DGII_RNC.zip";
 
-const example: FastifyPluginAsync = async (fastify, opts): Promise<void> => {
+const rncRoute: FastifyPluginAsync = async (fastify, opts): Promise<void> => {
   fastify.get("/", async function (request, reply) {
-
     const startTime = Date.now();
-    // Example usage:
-    await downloadAndProcessZip(
-      "https://dgii.gov.do/app/WebApps/Consultas/RNC/DGII_RNC.zip",
-      async (line: string) => {
+    let batch: any[] = [];
+    const db = getDB();
+    const collection = db.collection("entities");
+
+    try {
+      try {
+        await collection.drop();
+        console.log("Collection 'entities' delete.");
+      } catch (dropError) {
+        console.warn("Error:", dropError);
+      }
+
+      await downloadAndProcessZip(ZIP_URL, async (line: string) => {
+        if (countSeparators(line, "|") < 10) {
+          console.warn("Skipping invalid line:", line);
+          return;
+        }
+
+        const parts = line.split("|");
+
         const [
           rnc,
           name,
@@ -27,7 +42,8 @@ const example: FastifyPluginAsync = async (fastify, opts): Promise<void> => {
           foundationDate,
           status,
           regime,
-        ] = line.split("|");
+        ] = parts;
+
         const parsedData = {
           rnc,
           name,
@@ -35,18 +51,49 @@ const example: FastifyPluginAsync = async (fastify, opts): Promise<void> => {
           foundationDate,
           activity,
           status,
-          regime: regime.replace("\r", ""),
+          regime: regime ? regime.replace("\r", "") : null,
         };
 
-        await redis.set(rnc, JSON.stringify(parsedData));
+        batch.push({ insertOne: { document: parsedData } });
+
+        if (batch.length >= BATCH_SIZE) {
+          try {
+            await collection.bulkWrite(batch);
+            console.log(`Batch inserted with ${batch.length} documents`);
+            batch = [];
+          } catch (error) {
+            console.error("Error inserting batch:", error);
+          }
+        }
+      });
+
+      if (batch.length > 0) {
+        await collection.bulkWrite(batch);
+        console.log(`Final batch inserted with ${batch.length} documents`);
       }
-    );
 
-    const endTime = Date.now();
-    const took = endTime - startTime;
+      await collection.createIndex({ rnc: 1 });
+      console.log("Índice 'rnc' create.");
 
-    return { status: "ok", took: `${took}ms` };
+      const endTime = Date.now();
+      const took = endTime - startTime;
+
+      return { status: "ok", took: `${took}ms` };
+    } catch (error) {
+      console.error("Error processing RNC data:", error);
+      reply.status(500).send({ error: "Internal Server Error" });
+    }
   });
 };
 
-export default example;
+function countSeparators(line: string, separator: string): number {
+  let count = 0;
+  for (let i = 0; i < line.length; i++) {
+    if (line[i] === separator) {
+      count++;
+    }
+  }
+  return count;
+}
+
+export default rncRoute;

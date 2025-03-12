@@ -8,7 +8,7 @@
   },
   "scripts": {
     "test": "npm run build:ts && tsc -p test/tsconfig.json && c8 node --test -r ts-node/register \"test/**/*.ts\"",
-    "start": "npm run build:ts && fastify start -l info dist/app.js",
+    "start": "node --max-old-space-size=4096 npm run build:ts && fastify start -l info dist/app.js",
     "build:ts": "tsc",
     "watch:ts": "tsc -w",
     "dev": "npm run build:ts && concurrently -k -p \"[{name}]\" -n \"TypeScript,App\" -c \"yellow.bold,cyan.bold\" \"npm:watch:ts\" \"npm:dev:start\"",
@@ -25,11 +25,13 @@
     "fastify-cli": "^7.3.0",
     "fastify-plugin": "^5.0.0",
     "ioredis": "^5.6.0",
-    "jszip": "^3.10.1"
+    "jszip": "^3.10.1",
+    "mongodb": "~6.14.2",
+    "mongoose": "^8.12.1"
   },
   "devDependencies": {
     "@types/jszip": "^3.4.1",
-    "@types/node": "^22.1.0",
+    "@types/node": "^22.13.10",
     "c8": "^10.1.2",
     "concurrently": "^9.0.0",
     "fastify-tsconfig": "^2.0.0",
