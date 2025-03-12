@@ -1,7 +1,8 @@
 # Logs
 logs
 *.log
-npm-debug.log*
+npm-debug.log # Corregido: Ignora solo npm-debug.log
+.pnpm-debug.log # Ignores pnpm debug logs
 
 # Runtime data
 pids
@@ -34,7 +35,6 @@ jspm_packages
 # Optional npm cache directory
 .npm
 
-
 # Optional REPL history
 .node_repl_history
 
@@ -52,7 +52,7 @@ profile-*
 
 # vscode
 .vscode
-*code-workspace
+*.code-workspace
 
 # clinic
 profile*
@@ -65,3 +65,7 @@ test/types/index.js
 
 # compiled app
 dist
+
+# Fly.io
+.fly
+fly.toml.bak
