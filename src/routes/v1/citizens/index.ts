@@ -63,15 +63,30 @@ export default async function (fastify: FastifyInstance) {
 
         return result;
       });
-
+      // Mapping from Spanish to English
+      const labelMapping: Record<string, string> = {
+        Nombre: "name",
+        Estado: "status",
+        Tipo: "type",
+        "RNC o Cédula": "rnc_or_id",
+        Marca: "category",
+        // Add more mappings as necessary
+      };
       if (!data) {
         return reply
           .status(404)
           .send({ error: "No results found for the provided ID." });
       }
 
+      // Translate keys in the extracted data
+      const translatedData: Record<string, string> = {};
+      for (const [spanishKey, value] of Object.entries(data)) {
+        const englishKey = labelMapping[spanishKey] || spanishKey; // Fallback to Spanish key if no mapping exists
+        translatedData[englishKey] = value;
+      }
+
       // Send extracted data as response
-      return reply.send(data);
+      return reply.send(translatedData);
     } catch (error) {
       console.error("Scraping error:", error);
       return reply.status(500).send({
