@@ -1,43 +1,35 @@
-# syntax = docker/dockerfile:1
+# Use a lightweight Node.js image
+FROM node:20-alpine
 
-ARG NODE_VERSION=20.17.0
-FROM node:${NODE_VERSION}-slim AS base
+# Install necessary dependencies for Puppeteer
+RUN apk add --no-cache \
+    chromium \
+    nss \
+    freetype \
+    harfbuzz \
+    ca-certificates \
+    ttf-freefont \
+    libstdc++ \
+    bash
 
-LABEL fly_launch_runtime="Node.js"
+# Set environment variables for Puppeteer
+ENV PUPPETEER_SKIP_CHROMIUM_DOWNLOAD=true \
+    PUPPETEER_EXECUTABLE_PATH=/usr/bin/chromium-browser
 
+# Set the working directory
 WORKDIR /app
 
-ENV NODE_ENV="production"
+# Copy package.json and package-lock.json
+COPY package*.json ./
 
-# Install pnpm
-ARG PNPM_VERSION=10.5.2
-RUN npm install -g pnpm@$PNPM_VERSION
+# Install dependencies
+RUN npm install
 
-# Build stage
-FROM base AS build
-
-RUN apt-get update -qq && \
-    apt-get install --no-install-recommends -y build-essential node-gyp pkg-config python-is-python3
-
-COPY package.json pnpm-lock.yaml ./
-
-# Install ONLY production dependencies
-RUN pnpm install --frozen-lockfile
-
-# Copy source code and compile
+# Copy the rest of the application code
 COPY . .
-RUN pnpm run build:ts
 
-# Final image
-FROM base
-
-# Copy the compiled application
-COPY --from=build /app/dist /app/dist
-COPY --from=build /app/node_modules /app/node_modules
-COPY --from=build /app/package.json /app/package.json
-
-# Expose the port
+# Expose the port your app runs on
 EXPOSE 3000
 
-# Run the server
-CMD ["node", "dist/app.js"]
+# Command to run the application
+CMD ["npm", "start"]

@@ -1,6 +1,6 @@
 import { FastifyPluginAsync } from "fastify";
-import { getDB } from "../../db/database";
-import { downloadAndProcessZip } from "../../utils";
+import { getDB } from "../../../db/database";
+import { downloadAndProcessZip } from "../../../utils";
 
 const BATCH_SIZE = 10000;
 const ZIP_URL =

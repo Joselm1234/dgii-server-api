@@ -1,6 +1,7 @@
 {
   "extends": "fastify-tsconfig",
   "compilerOptions": {
+    "lib": ["esnext", "dom"],
     "outDir": "dist",
     "sourceMap": true,
     "esModuleInterop": true
