@@ -29,15 +29,15 @@ export default async function (fastify: FastifyInstance) {
 
       // Navigate to the target page
       await page.goto(
-        "https://dgii.gov.do/app/WebApps/ConsultasWeb2/ConsultasWeb/consultas/ciudadanos.aspx",
+        "https://dgii.gov.do/app/WebApps/ConsultasWeb/consultas/ciudadanos.aspx",
         { waitUntil: "domcontentloaded" } // Faster loading strategy
       );
 
       // Interact with the form
-      await page.type("#cphMain_txtCedula", id);
+      await page.type("#ctl00_cphMain_txtCedula", id);
       await Promise.all([
-        page.click("#cphMain_btnBuscarCedula"),
-        page.waitForSelector("#cphMain_divResultsContainer table", {
+        page.click("#ctl00_cphMain_btnBuscarCedula"),
+        page.waitForSelector("#ctl00_cphMain_divResultsContainer table", {
           timeout: 1000,
         }), // Reduced timeout
       ]);
@@ -45,7 +45,7 @@ export default async function (fastify: FastifyInstance) {
       // Extract data from the results table
       const data = await page.evaluate(() => {
         const resultsTable = document.querySelector(
-          "#cphMain_divResultsContainer table"
+          "#ctl00_cphMain_divResultsContainer table"
         );
         if (!resultsTable) return null;
 
